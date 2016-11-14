@@ -1,0 +1,19 @@
+keys:
+  korrigan:
+    token: blablabla
+
+  tamere:
+    token: tutututu
+
+buckets:
+  toto:
+    path: /tmp/toto
+    allow:
+      - korrigan
+  tata:
+    path: /tmp/tata
+    allow:
+      - tamere
+  tutu:
+    path: /tmp/tutu
+    allow: all
