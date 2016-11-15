@@ -14,9 +14,14 @@ class BucketStats:
     Stats for a bucket
 
     """
-    def __init__(self):
+    def __init__(self, bucket):
+        self.bucket = bucket
         self.creations = 0
         self.deletions = 0
+
+    @property
+    def files_count(self):
+        return 0
 
     def as_json(self):
         return {
@@ -30,21 +35,29 @@ class Bucket:
     Represents a bucket which store files
 
     """
-
     def __init__(self, name, config):
         self.name = name
         self.config = config
         self._blueprint = Blueprint('bucket_{}'.format(self.name), __name__)
-        self._stats = BucketStats()
+        self._stats = BucketStats(self)
+        self.estroi = None
 
     @property
     def path(self):
         return self.config['path']
 
+    @property
+    def allowed(self):
+        return self.config.get('allow', None)
+
+    def is_key_allowed(self, key):
+        return self.allowed == 'all' or key in self.allowed
+
     def filepath(self, name):
         return '{}/{}'.format(self.path, name)
 
-    def register(self, app):
+    def register(self, app, estroi):
+        self.estroi = estroi
         os.makedirs(self.path, exist_ok=True)
         BucketView.register(self, self._blueprint)
         app.register_blueprint(self._blueprint, url_prefix='/bucket/{}'.format(self.name))
@@ -64,8 +77,8 @@ class Bucket:
         self._stats.deletions += 1
         return {'deleted': name}
 
-    def auth(self, key, password):
-        return True
+    def auth(self, key, token):
+        return self.is_key_allowed(key) and self.estroi.auth(key, token)
 
     def stats(self):
         return self._stats.as_json()

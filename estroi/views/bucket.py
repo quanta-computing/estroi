@@ -8,28 +8,11 @@ from flask import jsonify, abort
 from flask import request
 
 
-def authenticate(f, *args1, **kwargs1):
-    def _auth(*args, **kwargs):
-        print(args1)
-        print(kwargs1)
-        print(args)
-        print(kwargs)
-        bucket_view = args[0]
-        print(request.username)
-        if bucket_view.bucket.auth(request.username, request.password):
-            return f(bucket_view, *args, **kwargs)
-        else:
-            abort(401)
-    return _auth
-
-
 class BucketView(MethodView):
     """
     API View representing a bucket
 
     """
-    decorators = [authenticate]
-
     def __init__(self, bucket):
         self.bucket = bucket
 
@@ -44,6 +27,21 @@ class BucketView(MethodView):
     def get(self):
         """Returns bucket stats"""
         return jsonify(self.bucket.stats())
+
+    def _bucket_auth(self, auth):
+        """Authenticate against the bucket using authorization dict"""
+        return self.bucket.auth(auth['username'], auth['password'])
+
+    def _authenticate_request(self):
+        """Authenticate the request"""
+        if request.authorization is None:
+            abort(401)
+        elif not self._bucket_auth(request.authorization):
+            abort(403)
+
+    def dispatch_request(self, *args, **kwargs):
+        self._authenticate_request()
+        return super().dispatch_request(*args, **kwargs)
 
     @classmethod
     def register(klass, bucket, app):

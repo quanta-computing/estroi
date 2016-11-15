@@ -21,6 +21,11 @@ class EstroiServer:
         self.keys = {}
         self.buckets = []
 
+    def auth(self, key, token):
+        if key not in self.keys:
+            return False
+        return self.keys[key].auth(token)
+
     def load_config(self, config_file):
         """Load configuration from yaml file `config_file`"""
         with open(config_file) as fh:
@@ -33,13 +38,12 @@ class EstroiServer:
         """
         for name, bucket_config in self.config['buckets'].items():
             bucket = Bucket(name, bucket_config)
-            bucket.register(app)
+            bucket.register(app, self)
             self.buckets.append(bucket)
 
     def register_keys(self, app):
         for name, key_config in self.config['keys'].items():
-            key = Key(name, key_config)
-            self.keys[name] = key
+            self.keys[name] = Key(name, key_config)
 
     def register_base_views(self, app):
         root = Blueprint('root', __name__)

@@ -9,5 +9,5 @@ class Key:
     def token(self):
         return self.config['token']
 
-    def auth(self, name, token):
-        return name == self.name and token == self.token
+    def auth(self, token):
+        return token == self.token
