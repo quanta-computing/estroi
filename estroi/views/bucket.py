@@ -4,7 +4,7 @@ and a stats route (GET)
 
 """
 from flask.views import MethodView
-from flask import jsonify, abort
+from flask import jsonify, abort, send_from_directory
 from flask import request
 
 
@@ -24,9 +24,20 @@ class BucketView(MethodView):
         """Handles DELETE /{name}"""
         return jsonify(self.bucket.delete(name))
 
-    def get(self):
+    def stats(self):
         """Returns bucket stats"""
         return jsonify(self.bucket.stats())
+
+    def file(self, name):
+        """Returns the file from the bucket"""
+        return send_from_directory(self.bucket.path, name)
+
+    def get(self, name=None):
+        """Returns stats if name is None or file from bucket"""
+        if name is None:
+            return self.stats()
+        else:
+            return self.file(name)
 
     def _bucket_auth(self, auth):
         """Authenticate against the bucket using authorization dict"""
@@ -47,4 +58,4 @@ class BucketView(MethodView):
     def register(klass, bucket, app):
         view = klass.as_view(bucket.name, bucket)
         app.add_url_rule('/', view_func=view, methods=['GET', 'POST'])
-        app.add_url_rule('/<name>', view_func=view, methods=['DELETE'])
+        app.add_url_rule('/<name>', view_func=view, methods=['GET', 'DELETE'])

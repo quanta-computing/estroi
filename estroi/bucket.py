@@ -6,6 +6,7 @@ import os
 import uuid
 
 from flask import Blueprint
+from flask import send_from_directory
 from .views import BucketView
 
 
