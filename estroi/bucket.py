@@ -4,6 +4,7 @@ Represents a bucket
 """
 import os
 import uuid
+import gzip
 
 from flask import Blueprint
 from flask import send_from_directory
@@ -36,6 +37,8 @@ class Bucket:
     Represents a bucket which store files
 
     """
+    DEFAULT_COMPRESS_LEVEL = 6
+
     def __init__(self, name, config):
         self.name = name
         self.config = config
@@ -51,11 +54,31 @@ class Bucket:
     def allowed(self):
         return self.config.get('allow', None)
 
+    @property
+    def compression(self):
+        compression = self.config.get('compress', 0)
+        if compression is False:
+            return 0
+        elif compression is True:
+            return self.DEFAULT_COMPRESS_LEVEL
+        else:
+            return compression
+
     def is_key_allowed(self, key):
         return self.allowed == 'all' or key in self.allowed
 
     def filepath(self, name):
         return '{}/{}'.format(self.path, name)
+
+    def filepath_gz(self, name):
+        return "{}.gz".format(self.filepath(name))
+
+    def fileobj_for_send(self, name):
+        name = os.path.basename(name)  # avoid directory traversal
+        if os.path.isfile(self.filepath_gz(name)):
+            return gzip.open(self.filepath_gz(name), 'rb')
+        else:
+            return open(self.filepath(name), 'rb')
 
     def register(self, app, estroi):
         self.estroi = estroi
@@ -66,11 +89,21 @@ class Bucket:
     def generate_uuid(self):
         return uuid.uuid4()
 
+    def _create_with_gz(self, path, content):
+        with gzip.open(path, 'wb', self.compression) as f:
+            f.write(content)
+
+    def _create_without_gz(self, path, content):
+        with open(path, 'wb') as f:
+            f.write(content)
+
     def create(self, content):
         name = self.generate_uuid()
-        with open(self.filepath(name), 'wb') as f:
-            f.write(content)
-            self._stats.creations += 1
+        if self.compression > 0:
+            self._create_with_gz(self.filepath_gz(name), content)
+        else:
+            self._create_without_gz(self.filepath(name), content)
+        self._stats.creations += 1
         return {'name': name}
 
     def delete(self, name):
