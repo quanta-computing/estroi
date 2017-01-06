@@ -8,6 +8,7 @@ keys:
 buckets:
   toto:
     path: /tmp/toto
+    compress: 6
     allow:
       - korrigan
   tata:
