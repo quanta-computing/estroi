@@ -4,7 +4,7 @@ and a stats route (GET)
 
 """
 from flask.views import MethodView
-from flask import jsonify, abort, send_file
+from flask import jsonify, abort
 from flask import request
 
 
@@ -30,7 +30,8 @@ class BucketView(MethodView):
 
     def file(self, name):
         """Returns the file from the bucket"""
-        return send_file(self.bucket.fileobj_for_send(name))
+        with self.bucket.fileobj_for_send(name) as f:
+            return (f.read(), {'Content-type': 'application/octet-stream'})
 
     def get(self, name=None):
         """Returns stats if name is None or file from bucket"""
