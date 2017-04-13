@@ -22,7 +22,10 @@ class BucketView(MethodView):
 
     def delete(self, name):
         """Handles DELETE /{name}"""
-        return jsonify(self.bucket.delete(name))
+        try:
+            return jsonify(self.bucket.delete(name))
+        except FileNotFoundError:
+            abort(404)
 
     def stats(self):
         """Returns bucket stats"""
@@ -30,8 +33,11 @@ class BucketView(MethodView):
 
     def file(self, name):
         """Returns the file from the bucket"""
-        with self.bucket.fileobj_for_send(name) as f:
-            return (f.read(), {'Content-type': 'application/octet-stream'})
+        try:
+            with self.bucket.fileobj_for_send(name) as f:
+                return (f.read(), {'Content-type': 'application/octet-stream'})
+        except FileNotFoundError:
+            abort(404)
 
     def get(self, name=None):
         """Returns stats if name is None or file from bucket"""
