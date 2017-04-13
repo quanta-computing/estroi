@@ -107,7 +107,11 @@ class Bucket:
         return {'name': name}
 
     def delete(self, name):
-        os.unlink(self.filepath(name))
+        name = os.path.basename(name)  # avoid directory traversal
+        if os.path.isfile(self.filepath_gz(name)):
+            os.unlink(self.filepath_gz(name))
+        else:
+            os.unlink(self.filepath(name))
         self._stats.deletions += 1
         return {'deleted': name}
 
